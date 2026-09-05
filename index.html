@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tool đối chiếu danh sách khám</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--text:#172033;--muted:#667085;--line:#dce2ea;--primary:#2463eb;--primary2:#1747b0;--ok:#067647;--okbg:#ecfdf3;--warn:#b54708;--warnbg:#fffaeb;--danger:#b42318;--dangerbg:#fef3f2}
+*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+.wrap{max-width:1220px;margin:0 auto;padding:28px}header{margin-bottom:18px}h1{font-size:28px;margin:0 0 7px}.sub{color:var(--muted);font-size:14px;line-height:1.55}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:800px){.grid{grid-template-columns:1fr}.wrap{padding:16px}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 3px 14px rgba(16,24,40,.05)}
+.card h2{margin:0 0 6px;font-size:18px}.desc{font-size:13px;color:var(--muted);margin-bottom:14px}
+.upload{border:2px dashed #b7c3d6;border-radius:14px;padding:25px;text-align:center;background:#fbfcfe}.upload.drag{background:#eef4ff;border-color:var(--primary)}
+input[type=file]{display:none}.filebtn{display:inline-flex;align-items:center;gap:8px;padding:11px 16px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;font-weight:700}.filebtn:hover{background:#f8fafc}
+.fileinfo{margin-top:12px;font-size:13px;color:var(--muted)}.fileinfo b{color:var(--text)}
+.sample{margin-top:12px}.sample a{display:inline-block;text-decoration:none;color:#1d4ed8;font-weight:700;font-size:13px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.btn{border:0;border-radius:10px;padding:11px 15px;font-weight:700;cursor:pointer}.primary{background:var(--primary);color:#fff}.primary:hover{background:var(--primary2)}.ghost{background:#fff;border:1px solid var(--line)}.danger{background:#fff1f0;color:var(--danger);border:1px solid #f5c2c0}
+.status{margin-top:14px;padding:11px 13px;border-radius:10px;display:none;font-size:14px}.status.show{display:block}.status.ok{background:var(--okbg);color:var(--ok)}.status.warn{background:var(--warnbg);color:var(--warn)}.status.err{background:var(--dangerbg);color:var(--danger)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}@media(max-width:700px){.stats{grid-template-columns:1fr}.stat .v{font-size:26px}}
+.stat{padding:16px;border:1px solid var(--line);border-radius:14px;background:#fff}.stat .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.stat .v{font-size:30px;font-weight:800;margin-top:5px}
+.result{margin-top:16px}.toolbar{display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:10px}.toolbar .left{font-weight:700}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px;max-height:560px}
+table{border-collapse:collapse;width:100%;font-size:13px;background:#fff}th,td{padding:9px 10px;border-bottom:1px solid #eef1f5;text-align:left;white-space:nowrap}th{position:sticky;top:0;background:#f8fafc;z-index:1}tr:hover td{background:#fafcff}.empty{padding:35px;text-align:center;color:var(--muted)}
+footer{padding:18px 0 4px;color:var(--muted);font-size:12px;text-align:center}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#eef4ff;color:#1d4ed8;font-size:12px;font-weight:700;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Tool đối chiếu danh sách khám</h1>
+  <div class="sub">Chọn <b>2 file Excel</b>: một file <b>Danh sách tổng</b> và một file <b>Danh sách đã khám</b>. Tool dùng <b>CCCD</b> làm key chính để tìm những người <b>chưa khám</b>.</div>
+  <div class="sub">Hướng dẫn sử dụng Tool: <b>Bấm tải 2 mẫu excel Danh sách tổng và Danh sách đã khám sau đó điền đầy đủ thông tin bấm nút Chọn file Excel để đẩy các file lên theo thứ tự. Sau đó bấm nút Đối chiếu danh sách và bấm nút Tải Excel danh sách chưa khám.</b></div>
+</header>
+
+<div class="grid">
+  <section class="card">
+    <h2>📋 Danh sách tổng</h2>
+    <div class="desc">File nguồn: <b>TongHop</b> — sheet <b>DANHSACHTONG</b>, cột <b>CCCD</b>.</div>
+    <div id="dropTong" class="upload">
+      <div style="font-size:17px;font-weight:800">Kéo thả file Excel vào đây</div>
+      <div class="sub" style="margin:7px 0 14px">Hỗ trợ .xls, .xlsx, .xlsm</div>
+      <label class="filebtn">📄 Chọn file Excel<input id="tongInput" type="file" accept=".xls,.xlsx,.xlsm,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12"></label>
+      <div id="tongInfo" class="fileinfo">Chưa chọn file.</div>
+      <div class="sample">Mẫu: <a href="TongHop2.xlsx" download>Tải file mẫu Danh sách tổng</a></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>✅ Danh sách đã khám</h2>
+    <div class="desc">File nguồn: <b>DaKham</b> — lấy cột <b>CCCD</b> để đối chiếu.</div>
+    <div id="dropKham" class="upload">
+      <div style="font-size:17px;font-weight:800">Kéo thả file Excel vào đây</div>
+      <div class="sub" style="margin:7px 0 14px">Hỗ trợ .xls, .xlsx, .xlsm</div>
+      <label class="filebtn">📄 Chọn file Excel<input id="khamInput" type="file" accept=".xls,.xlsx,.xlsm,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12"></label>
+      <div id="khamInfo" class="fileinfo">Chưa chọn file.</div>
+      <div class="sample">Mẫu: <a href="DaKham111.xlsx" download>Tải file mẫu Danh sách đã khám</a></div>
+    </div>
+  </section>
+</div>
+
+<section class="card" style="margin-top:16px">
+  <div class="actions">
+    <button class="btn primary" id="run">🔎 Đối chiếu danh sách</button>
+    <button class="btn ghost" id="download" disabled>⬇ Tải Excel danh sách chưa khám</button>
+    <button class="btn danger" id="reset">↺ Xóa dữ liệu</button>
+  </div>
+  <div id="status" class="status"></div>
+  <div class="stats">
+    <div class="stat"><div class="k">Tổng số</div><div id="total" class="v">0</div></div>
+    <div class="stat"><div class="k">Đã khám</div><div id="done" class="v">0</div></div>
+    <div class="stat"><div class="k">Chưa khám</div><div id="left" class="v">0</div></div>
+  </div>
+</section>
+
+<section class="card result">
+  <div class="toolbar"><div class="left">Danh sách chưa khám <span id="countPill" class="pill">0</span></div><div class="sub" style="margin:0">Kết quả lấy từ file Danh sách tổng</div></div>
+  <div id="tablewrap" class="tablewrap"><div class="empty">Chưa có kết quả. Hãy chọn đủ 2 file rồi bấm “Đối chiếu danh sách”.</div></div>
+</section>
+
+<footer>Chạy trực tiếp trên Chrome/Edge. Dữ liệu được xử lý ngay trên máy.</footer>
+</div>
+
+<script>
+let tongBook=null, khamBook=null, resultRows=[], sourceHeader=[];
+const $=id=>document.getElementById(id);
+const norm=s=>String(s??'').trim().replace(/\s+/g,' ').toUpperCase();
+const cccd=s=>String(s??'').replace(/\s+/g,'').trim();
+function setStatus(msg,type='ok'){const el=$('status');el.textContent=msg;el.className='status show '+type;}
+function clearStatus(){const el=$('status');el.className='status';el.textContent='';}
+function setFileInfo(id,file,extra=''){ $(id).innerHTML=file?`<b>${escapeHtml(file.name)}</b> <span>${Math.round(file.size/1024)} KB${extra?' · '+extra:''}</span>`:'Chưa chọn file.'; }
+function escapeHtml(s){return String(s).replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));}
+function getSheet(book,name){const actual=book.SheetNames.find(n=>norm(n)===norm(name)); if(!actual) throw new Error(`Không tìm thấy sheet ${name}.`); return book.Sheets[actual];}
+function findHeaderRow(matrix, wanted='CCCD'){
+  const target=norm(wanted);
+  for(let r=0;r<Math.min(matrix.length,20);r++){
+    const idx=matrix[r].findIndex(v=>norm(v).startsWith(target));
+    if(idx>=0) return {row:r,col:idx};
+  }
+  return null;
+}
+function rowsFromSheet(sheet){return XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});}
+async function readWorkbook(file){const buf=await file.arrayBuffer(); return XLSX.read(buf,{type:'array',cellDates:false});}
+function render(){
+  $('countPill').textContent=resultRows.length.toLocaleString('vi-VN');
+  if(!resultRows.length){$('tablewrap').innerHTML='<div class="empty">Không có người chưa khám.</div>'; return;}
+  const cols=sourceHeader.slice();
+  let html='<table><thead><tr><th>STT</th>'+cols.map(x=>`<th>${escapeHtml(x)}</th>`).join('')+'</tr></thead><tbody>';
+  resultRows.forEach((row,i)=>{html+='<tr><td>'+(i+1)+'</td>'+cols.map((_,j)=>`<td>${escapeHtml(row[j]??'')}</td>`).join('')+'</tr>';});
+  html+='</tbody></table>';$('tablewrap').innerHTML=html;
+}
+function buildResultWorkbook(){
+  const wb=XLSX.utils.book_new();
+  const data=[sourceHeader,...resultRows];
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  ws['!cols']=sourceHeader.map((h,i)=>({wch:Math.min(35,Math.max(10,String(h).length+2))}));
+  XLSX.utils.book_append_sheet(wb,ws,'DANHSACHCHUAKHAM');
+  // Keep all sheets from the master file after the result sheet, except the source total list.
+  if(tongBook){
+    tongBook.SheetNames.forEach(name=>{
+      if(norm(name)===norm('DANHSACHTONG')) return;
+      let safe=name; if(wb.SheetNames.includes(safe)) safe='_'+safe;
+      XLSX.utils.book_append_sheet(wb,tongBook.Sheets[name],safe);
+    });
+  }
+  return wb;
+}
+async function runCompare(){
+  clearStatus();
+  if(!tongBook||!khamBook) return setStatus('Vui lòng chọn đủ 2 file Excel.', 'warn');
+  try{
+    const tongSheet=getSheet(tongBook,'DANHSACHTONG');
+    const tong=rowsFromSheet(tongSheet);
+    const head=findHeaderRow(tong,'CCCD');
+    if(!head) throw new Error('Không tìm thấy cột CCCD trong sheet DANHSACHTONG của file Danh sách tổng.');
+    sourceHeader=tong[head.row].map(v=>String(v??'').trim());
+    const khamSheet=khamBookSheet();
+    const kham=rowsFromSheet(khamSheet);
+    const khHead=findHeaderRow(kham,'CCCD');
+    if(!khHead) throw new Error('Không tìm thấy cột CCCD trong file Danh sách đã khám.');
+    const seenKham=new Set();
+    for(let r=khHead.row+1;r<kham.length;r++){const key=cccd(kham[r][khHead.col]);if(key) seenKham.add(key);}
+    const seenTong=new Set(); resultRows=[];
+    for(let r=head.row+1;r<tong.length;r++){
+      const row=tong[r]; const key=cccd(row[head.col]);
+      if(!key || seenTong.has(key)) continue;
+      seenTong.add(key);
+      if(!seenKham.has(key)) resultRows.push(row.slice(0,sourceHeader.length));
+    }
+    $('total').textContent=seenTong.size.toLocaleString('vi-VN');
+    $('done').textContent=Math.max(0,seenTong.size-resultRows.length).toLocaleString('vi-VN');
+    $('left').textContent=resultRows.length.toLocaleString('vi-VN');
+    $('download').disabled=false;
+    render();
+    setStatus(`Đối chiếu xong: ${seenTong.size.toLocaleString('vi-VN')} người trong danh sách tổng, ${resultRows.length.toLocaleString('vi-VN')} người chưa khám.`, 'ok');
+  }catch(e){setStatus(e.message||'Không thể xử lý file Excel.','err');}
+}
+function khamBookSheet(){
+  const preferred=khamBook.SheetNames.find(n=>norm(n)==='SHEET1') || khamBook.SheetNames.find(n=>khamBook.Sheets[n]);
+  return khamBook.Sheets[preferred];
+}
+function resetAll(){tongBook=null;khamBook=null;resultRows=[];sourceHeader=[]; $('tongInput').value='';$('khamInput').value='';setFileInfo('tongInfo');setFileInfo('khamInfo');$('total').textContent='0';$('done').textContent='0';$('left').textContent='0';$('download').disabled=true;clearStatus();render();}
+$('tongInput').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{tongBook=await readWorkbook(f);setFileInfo('tongInfo',f,`${tongBook.SheetNames.length} sheet`);setStatus('Đã nạp file Danh sách tổng.','ok');}catch(err){tongBook=null;setFileInfo('tongInfo');setStatus('Không đọc được file Danh sách tổng: '+err.message,'err');}});
+$('khamInput').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{khamBook=await readWorkbook(f);setFileInfo('khamInfo',f,`${khamBook.SheetNames.length} sheet`);setStatus('Đã nạp file Danh sách đã khám.','ok');}catch(err){khamBook=null;setFileInfo('khamInfo');setStatus('Không đọc được file Danh sách đã khám: '+err.message,'err');}});
+$('run').addEventListener('click',runCompare);
+$('reset').addEventListener('click',resetAll);
+$('download').addEventListener('click',()=>{if(!resultRows.length){setStatus('Không có danh sách chưa khám để tải.','warn');return;}const wb=buildResultWorkbook();XLSX.writeFile(wb,'Danh_sach_chua_kham.xlsx');setStatus('Đã tạo file Danh_sach_chua_kham.xlsx.','ok');});
+for(const [zone,input] of [['dropTong','tongInput'],['dropKham','khamInput']]){const z=$(zone);['dragenter','dragover'].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();z.classList.add('drag')}));['dragleave','drop'].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();z.classList.remove('drag')}));z.addEventListener('drop',e=>{$(input).files=e.dataTransfer.files;$(input).dispatchEvent(new Event('change'));});}
+render();
+</script>
+</body></html>
